@@ -1,21 +1,20 @@
 package app
 
-import infra.dataBase.FakeDataBase
-import infra.resultWritter.ConsoleResultWriter
-import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.mockito.*
 import domain.Account
 import domain.Transaction
 import application.AccountServiceImpl
+import application.ClockTransaction
 import application.DataPersistence
-import org.mockito.Mockito.`when`
+import application.ResultWriter
 import java.time.LocalDateTime
-import kotlin.test.assertEquals
+import org.mockito.kotlin.mock
+import org.mockito.kotlin.verify
+import org.mockito.kotlin.whenever
+import kotlin.test.assertFailsWith
 
 
-class AccountServiceImplTest {
+internal class AccountServiceImplTest {
 
    /*@InjectMocks
    private var sut: AccountServiceImpl? = null
@@ -26,52 +25,126 @@ class AccountServiceImplTest {
    @Captor
    private var captor: ArgumentCaptor<Account>? = null*/
 
-
-   private var sut: AccountServiceImpl? = null
-   private var dataBase: DataPersistence? = null
-   private var captor: ArgumentCaptor<Account>? = null
-
-   @BeforeEach
-   fun setUp() {
-      dataBase = Mockito.mock(FakeDataBase::class.java)
-      sut = AccountServiceImpl(dataBase!!)
-   }
-
+   private val mockDataBase = mock<DataPersistence>()
+   private val mockWriter = mock<ResultWriter>()
+   private val mockClock = mock<ClockTransaction>()
 
 
    @Test
-   fun `deposit() in a new Account test`() {
+   fun `deposit in a new Account test`() {
       //GIVEN
-      sut = AccountServiceImpl(dataBase!!)
-      var testAccount = Account("myTest")
-      `when`(dataBase!!.readAccount("myTest")).thenReturn(testAccount)
+      whenever(mockClock.now()).thenReturn(LocalDateTime.now())
+      var resultDateTime = mockClock.now()
 
+      var accountToRead = Account("myTest")
 
-      //WHEN
-      sut!!.deposit("myTest", 100)
+      whenever(mockDataBase.readAccount("myTest")).thenReturn(accountToRead)
+
+      var sut = AccountServiceImpl(mockDataBase, mockWriter, mockClock )
+      sut.deposit("myTest", 100)
+
       var resultAccount = Account("myTest")
       resultAccount.balance = 100
-      resultAccount.transactions = mutableListOf(Transaction(100, LocalDateTime.now()))
+      resultAccount.transactions = mutableListOf(Transaction(100,100, resultDateTime))
 
-      //THEN
-      Mockito.verify(dataBase!!.createOrUpdateAccount(captor!!.capture()))
-      assertEquals(resultAccount, captor!!.value)
-   }
-
-   @Test
-   fun `deposit() in a used Account test`(){
+      verify(mockDataBase).createOrUpdateAccount(resultAccount)
 
    }
 
    @Test
-   fun `withdraw() more than our Balance test`(){
+   fun `withdraw with enough balance`() {
+      //GIVEN
+      whenever(mockClock.now()).thenReturn(LocalDateTime.now())
+      var resultDateTime = mockClock.now()
+
+      val accountToRead = Account("myTest")
+      accountToRead.balance = 1000
+      accountToRead.transactions = mutableListOf(Transaction(1000, 1000, resultDateTime))
+
+      whenever(mockDataBase.readAccount("myTest")).thenReturn(accountToRead)
+
+      var sut = AccountServiceImpl(mockDataBase, mockWriter, mockClock )
+
+      var resultAccount = accountToRead
+      resultAccount.balance = 900
+      resultAccount.transactions.add(Transaction(-100,900, resultDateTime))
+
+      sut.withdraw("myTest", 900)
+
+      verify(mockDataBase).createOrUpdateAccount(resultAccount)
 
    }
 
    @Test
-   fun `withdraw() with enough balance test`(){
+   fun `withdraw with not enough balance`() {
+      //GIVEN
+      whenever(mockClock.now()).thenReturn(LocalDateTime.now())
+      var resultDateTime = mockClock.now()
+
+      val accountToRead = Account("myTest")
+      accountToRead.balance = 1000
+      accountToRead.transactions = mutableListOf(Transaction(1000, 1000, resultDateTime))
+
+      whenever(mockDataBase.readAccount("myTest")).thenThrow(ArithmeticException("Not enough money"))
+
+      var sut = AccountServiceImpl(mockDataBase, mockWriter, mockClock )
+
+      assertFailsWith<ArithmeticException>(
+         message = "Not enough money",
+         block = {
+            sut.withdraw("myTest", 9000)
+         }
+      )
 
    }
+
+   @Test
+   fun `print name Account`(){
+      //GIVEN
+      whenever(mockClock.now()).thenReturn(LocalDateTime.now())
+      var resultDateTime = mockClock.now()
+
+      val accountToRead = Account("myTest")
+      whenever(mockDataBase.readAccount("myTest")).thenReturn(accountToRead)
+
+      var sut = AccountServiceImpl(mockDataBase, mockWriter, mockClock )
+      sut.printStatement("myTest")
+
+      verify(mockWriter).printName("myTest")
+   }
+
+   @Test
+   fun `print transactions Account`(){
+      //GIVEN
+      whenever(mockClock.now()).thenReturn(LocalDateTime.now())
+      var resultDateTime = mockClock.now()
+
+      val accountToRead = Account("myTest")
+      accountToRead.transactions = mutableListOf(Transaction(100,100,resultDateTime), Transaction(50,150, resultDateTime))
+      whenever(mockDataBase.readAccount("myTest")).thenReturn(accountToRead)
+
+      var sut = AccountServiceImpl(mockDataBase, mockWriter, mockClock )
+      sut.printStatement("myTest")
+
+      verify(mockWriter).printTransactions(accountToRead.transactions)
+   }
+
+   @Test
+   fun `print balance Account`(){
+      //GIVEN
+      whenever(mockClock.now()).thenReturn(LocalDateTime.now())
+      var resultDateTime = mockClock.now()
+
+      val accountToRead = Account("myTest")
+      accountToRead.balance = 450
+      whenever(mockDataBase.readAccount("myTest")).thenReturn(accountToRead)
+
+      var sut = AccountServiceImpl(mockDataBase, mockWriter, mockClock )
+      sut.printStatement("myTest")
+
+      verify(mockWriter).printBalance(450)
+   }
+
 
 
 }

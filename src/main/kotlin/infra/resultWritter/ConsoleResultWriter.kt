@@ -18,8 +18,9 @@ class ConsoleResultWriter : application.ResultWriter {
            }
        }*/
 
-    override fun printTransaction(transaction: Transaction, balanceTemp: Int) {
-        println("${printDate(transaction)} || ${transaction.amount}   || $balanceTemp")
+    override fun printTransactions(transactionList: MutableList<Transaction>) {
+       for(transaction in transactionList)
+           println("${printDate(transaction)} || ${transaction.amount}   || ${transaction.balanceAtMoment}")
     }
 
     private fun printDate(transaction: Transaction) =

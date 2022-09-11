@@ -1,10 +1,9 @@
 package application
 
-import domain.Account
 import domain.Transaction
 
 interface ResultWriter {
-    fun printTransaction(transaction: Transaction, balanceTemp: Int)
+    fun printTransactions(transaction: MutableList<Transaction>)
 
     fun printName(name: String)
 
