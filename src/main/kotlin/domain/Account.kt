@@ -2,9 +2,10 @@ package domain
 
 import java.time.LocalDateTime
 
-class Account (var name:String = "") {
-    var balance = 0
-    var transactions = mutableListOf<Transaction>()
+data class Account (var name:String = "",
+               var balance:Int = 0,
+               var transactions:MutableList<Transaction> = mutableListOf()) {
+
 
     fun addDeposit(amount:Int, dateTime: LocalDateTime){
         addAmount(amount)

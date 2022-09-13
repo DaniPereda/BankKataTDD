@@ -18,9 +18,6 @@ fun main(args: Array<String>) {
     var clockTransaction = ClockTransactionImpl()
     var accountService = AccountServiceImpl(db, writter, clockTransaction)
     accountService.deposit("Dani", 100)
-    accountService.deposit("Dani", 100)
-    accountService.withdraw("Dani", 200)
-    accountService.deposit("Dani", 100)
 
     accountService.printStatement("Dani")
 

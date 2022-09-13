@@ -43,9 +43,7 @@ internal class AccountServiceImplTest {
       var sut = AccountServiceImpl(mockDataBase, mockWriter, mockClock )
       sut.deposit("myTest", 100)
 
-      var resultAccount = Account("myTest")
-      resultAccount.balance = 100
-      resultAccount.transactions = mutableListOf(Transaction(100,100, resultDateTime))
+      var resultAccount = Account("myTest", 100, mutableListOf(Transaction(100,100, resultDateTime)))
 
       verify(mockDataBase).createOrUpdateAccount(resultAccount)
 
@@ -57,17 +55,13 @@ internal class AccountServiceImplTest {
       whenever(mockClock.now()).thenReturn(LocalDateTime.now())
       var resultDateTime = mockClock.now()
 
-      val accountToRead = Account("myTest")
-      accountToRead.balance = 1000
-      accountToRead.transactions = mutableListOf(Transaction(1000, 1000, resultDateTime))
+      val accountToRead = Account("myTest", 1000, mutableListOf(Transaction(1000, 1000, resultDateTime)))
 
       whenever(mockDataBase.readAccount("myTest")).thenReturn(accountToRead)
 
       var sut = AccountServiceImpl(mockDataBase, mockWriter, mockClock )
 
-      var resultAccount = accountToRead
-      resultAccount.balance = 900
-      resultAccount.transactions.add(Transaction(-100,900, resultDateTime))
+      var resultAccount = Account("myTest", 100, mutableListOf(Transaction(1000, 1000, resultDateTime), Transaction(-900, 100, resultDateTime)))
 
       sut.withdraw("myTest", 900)
 
